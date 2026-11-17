@@ -1,0 +1,11 @@
+# The test runner and its pins. Not needed to regenerate the submission. Install it after the
+# pipeline's own requirements:
+#
+#     pip install -r solution/requirements.txt
+#     pip install -r solution/requirements-dev.txt
+pytest==9.2.0
+iniconfig==2.3.1
+pluggy==1.7.0
+pygments==2.21.0
+packaging==26.3
+colorama==0.4.6

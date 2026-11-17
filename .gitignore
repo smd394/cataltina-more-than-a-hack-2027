@@ -1,0 +1,17 @@
+# The match data is licensed to registered participants only: never committed.
+data/*
+!data/README.md
+out/
+external/
+
+# Environments and caches
+.venv/
+.venv-vision/
+__pycache__/
+.pytest_cache/
+
+# What the organisers' scorer writes, as in their own .gitignore
+evaluation/results/*.csv
+!evaluation/results/baseline_*.csv
+evaluation/reports/
+evaluation/scoreboard.csv

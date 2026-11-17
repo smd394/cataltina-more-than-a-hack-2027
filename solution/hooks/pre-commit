@@ -1,0 +1,59 @@
+#!/bin/sh
+# Pre-commit hook: refuse any commit that would put match data into the repository.
+#
+# Install once per clone, from the repository root:
+#     cp solution/hooks/pre-commit .git/hooks/pre-commit
+#     chmod +x .git/hooks/pre-commit          # macOS / Linux (Git for Windows does not need it)
+#
+# It refuses a commit that adds or changes any file
+#   - under data/ (the gated match bundle), except data/README.md;
+#   - under out/ (everything our scripts derive from the match data);
+#   - under external/ (other people's downloads, never republished);
+#   - whose name starts with BAR-ATH_ (how the match bundle names its files), except the
+#     organisers' two public 5-minute ground-truth files in evaluation/gt/, which are part of
+#     their own public repository.
+# Removing such a file from the repository is always allowed. Paths are compared without regard
+# to upper/lower case, because Windows and macOS treat Data/ and data/ as the same folder.
+#
+# Plain POSIX sh, so it runs under Git for Windows (Git Bash) and on macOS and Linux alike.
+
+set -f                                   # no wildcard expansion of file names
+newline='
+'
+allowed_gt_1="evaluation/gt/bar-ath_possession_gt_public.csv"
+allowed_gt_2="evaluation/gt/bar-ath_possession_gt_public_meta.json"
+
+staged=$(git -c core.quotePath=false diff --cached --name-only --diff-filter=ACMRTUXB)
+status=0
+IFS=$newline
+for path in $staged; do
+    lower=$(printf '%s' "$path" | tr 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' 'abcdefghijklmnopqrstuvwxyz')
+    name=${lower##*/}
+    reason=""
+    case "$lower" in
+        data/readme.md) ;;
+        data/*) reason="it is inside data/, the gated match bundle" ;;
+        out/*) reason="it is inside out/, files derived from the match data" ;;
+        external/*) reason="it is inside external/, other people's downloads we never republish" ;;
+    esac
+    if [ -z "$reason" ] && [ "$lower" != "$allowed_gt_1" ] && [ "$lower" != "$allowed_gt_2" ]; then
+        case "$name" in
+            bar-ath_*) reason="its name starts with BAR-ATH_, the match bundle's naming" ;;
+        esac
+    fi
+    if [ -n "$reason" ]; then
+        if [ "$status" -eq 0 ]; then
+            echo "COMMIT REFUSED: it would put match data into the repository." >&2
+        fi
+        echo "  $path" >&2
+        echo "      refused because $reason" >&2
+        status=1
+    fi
+done
+
+if [ "$status" -ne 0 ]; then
+    echo "" >&2
+    echo "Unstage each file with:  git restore --staged <file>   (your copy of the file is kept)" >&2
+    echo "Why: the match data is licensed to registered participants only and is never published." >&2
+fi
+exit "$status"
